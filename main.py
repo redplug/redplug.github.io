@@ -18,9 +18,18 @@ def get_tech_news():
 
 def generate_content(news_data):
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
     
-    # Markdown 형식으로 요청
+    # 모델 설정: Flash 모델 사용 시도
+    model_name = "gemini-1.5-flash-latest"
+    
+    try:
+        model = genai.GenerativeModel(model_name)
+        print(f"🤖 모델 사용: {model_name}")
+    except Exception:
+        # 만약 모델을 못 찾으면 가장 기본 모델인 gemini-pro로 폴백
+        print(f"⚠️ {model_name} 모델을 찾을 수 없어 'gemini-pro'로 전환합니다.")
+        model = genai.GenerativeModel("gemini-pro")
+
     prompt = f"""
     너는 IT 테크 블로거야. 아래 뉴스 중 Top 3를 선정해줘.
     
@@ -34,21 +43,19 @@ def generate_content(news_data):
     4. 맨 아래에 `---` 를 넣고, `#### 출처` 섹션을 만들어 링크 리스트를 작성해.
     5. 전체적으로 깔끔한 마크다운 문법을 사용해.
     """
+    
     response = model.generate_content(prompt)
     return response.text
 
 def save_as_markdown(content):
-    # 한국 시간 설정
     korea_tz = pytz.timezone("Asia/Seoul")
     now = datetime.now(korea_tz)
     
-    # 1. 파일명 생성 (Jekyll 표준: YYYY-MM-DD-제목.md)
-    # 제목에 공백이 있으면 안되므로 날짜로만 구성하거나 영문을 섞습니다.
     date_str = now.strftime("%Y-%m-%d")
+    # 파일명에 공백 대신 하이픈 사용
     file_name = f"{date_str}-daily-it-news.md"
     
-    # 2. Front Matter (Jekyll 헤더) 작성
-    # 이것이 있어야 블로그가 글을 인식합니다.
+    # Jekyll Front Matter
     front_matter = f"""---
 layout: post
 title:  "[{now.strftime('%Y-%m-%d')}] 오늘의 주요 IT 뉴스 Top 3"
@@ -58,8 +65,6 @@ categories: news
 
 """
     
-    # 3. 파일 저장 ( _posts 폴더에 저장 )
-    # _posts 폴더가 없으면 생성
     if not os.path.exists("_posts"):
         os.makedirs("_posts")
         
@@ -71,6 +76,11 @@ categories: news
     print(f"✅ 파일 생성 완료: {file_path}")
 
 if __name__ == "__main__":
+    print("1. 뉴스 수집 중...")
     news = get_tech_news()
+    
+    print("2. AI 원고 작성 중...")
     content = generate_content(news)
+    
+    print("3. 파일 저장 중...")
     save_as_markdown(content)
