@@ -1,6 +1,6 @@
 ---
 layout: default
-title: My IT News Blog
+title: Redplug Blog
 ---
 
 # 📰 오늘의 IT 뉴스
