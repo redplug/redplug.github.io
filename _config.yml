@@ -1,3 +1,12 @@
-theme: jekyll-theme-minimal
-title: Redplug's IT Blog
-description: Daily AI Tech News
+title: REDPLUG Tech News
+description: "매일 AI가 엄선한 최신 IT 트렌드와 뉴스"
+theme: minima
+plugins:
+  - jekyll-feed
+
+# 날짜 표시 형식
+date_format: "%Y-%m-%d"
+
+# 헤더에 표시될 링크 (선택사항)
+header_pages:
+  - index.md
