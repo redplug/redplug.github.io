@@ -8,7 +8,6 @@ import pytz
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def get_tech_news():
-    # 구글 뉴스 RSS (IT/기술)
     rss_url = "https://news.google.com/rss/topic/CAAqJggKIiBQQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=ko&gl=KR&ceid=KR:ko"
     feed = feedparser.parse(rss_url)
     news_list = []
@@ -33,30 +32,32 @@ def generate_content(news_data):
     5. 전체적으로 깔끔한 마크다운 문법을 사용해.
     """
     
-    # 1차 시도: Gemini 1.5 Flash (빠르고 저렴함)
+    # 모델 사용 시도
     try:
-        print("🤖 1차 시도: gemini-1.5-flash 모델 사용")
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # 최신 모델 이름 사용
+        model_name = "gemini-1.5-flash" 
+        print(f"🤖 모델 사용 시도: {model_name}")
+        model = genai.GenerativeModel(model_name)
         response = model.generate_content(prompt)
         return response.text
         
     except Exception as e:
-        print(f"⚠️ 1차 시도 실패 ({e})")
-        print("🔄 2차 시도: gemini-pro 모델로 전환합니다.")
+        print(f"❌ 생성 실패: {e}")
         
-        # 2차 시도: Gemini Pro (가장 안정적임)
+        # [디버깅] 현재 내 키로 쓸 수 있는 모델 리스트 출력
+        print("\n🔍 [디버깅] 사용 가능한 모델 리스트 확인 중...")
         try:
-            model = genai.GenerativeModel("gemini-pro")
-            response = model.generate_content(prompt)
-            return response.text
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    print(f" - {m.name}")
         except Exception as e2:
-            print(f"❌ 2차 시도도 실패했습니다: {e2}")
-            return "AI 모델 호출에 실패하여 내용을 생성하지 못했습니다."
+            print(f"⚠️ 모델 리스트조차 가져올 수 없습니다: {e2}")
+            
+        return "FAIL"
 
 def save_as_markdown(content):
     korea_tz = pytz.timezone("Asia/Seoul")
     now = datetime.now(korea_tz)
-    
     date_str = now.strftime("%Y-%m-%d")
     file_name = f"{date_str}-daily-it-news.md"
     
@@ -68,7 +69,6 @@ categories: news
 ---
 
 """
-    
     if not os.path.exists("_posts"):
         os.makedirs("_posts")
         
@@ -76,7 +76,6 @@ categories: news
     
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(front_matter + content)
-        
     print(f"✅ 파일 생성 완료: {file_path}")
 
 if __name__ == "__main__":
@@ -86,9 +85,9 @@ if __name__ == "__main__":
     print("2. AI 원고 작성 중...")
     content = generate_content(news)
     
-    if "AI 모델 호출에 실패" not in content:
+    if content == "FAIL":
+        print("❌ 콘텐츠 생성 실패로 프로세스를 종료합니다.")
+        exit(1)
+    else:
         print("3. 파일 저장 중...")
         save_as_markdown(content)
-    else:
-        print("❌ 콘텐츠 생성 실패로 저장을 건너뜁니다.")
-        exit(1) # Action을 실패로 처리
