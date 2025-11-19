@@ -17,7 +17,6 @@ def get_tech_news():
     if not feed.entries:
         return "뉴스 수집 실패"
 
-    # 상위 15개 수집 후 AI에게 전달
     for entry in feed.entries[:15]:
         title = entry.title
         link = entry.link
@@ -29,32 +28,33 @@ def get_tech_news():
 def generate_content(news_data):
     genai.configure(api_key=GEMINI_API_KEY)
     
+    # 프롬프트 수정: 서론 금지, 자체 푸터 금지
     prompt = f"""
-    너는 IT 테크 블로거야. 아래 뉴스 데이터 중 Top 5를 선정해줘.
+    너는 IT 뉴스 큐레이터야. 아래 뉴스 데이터 중 Top 5를 선정해서 정리해줘.
     
     [뉴스 데이터]
     {news_data}
     
-    [작성 포맷 - Markdown]
-    1. 총 **5개**의 뉴스를 작성해.
-    2. **각 뉴스마다** 아래 구조를 반드시 지켜줘 (헤더와 줄바꿈 필수):
-       
-       ### [뉴스 제목]
-       
-       **📌 요약**
-       (여기에는 뉴스 내용을 3문장 내외로 핵심만 요약해서 작성)
-       
-       **💡 시사점**
-       - (첫 번째 시사점: 기술적/산업적 파급효과)
-       - (두 번째 시사점: 개발자나 업계에 미치는 영향)
-       
-       <br>
-       **[🔗 원문 기사 보기]({{뉴스링크}})**
-       
-       ---
+    [작성 규칙 - 엄격 준수]
+    1. **서론, 인사말, 소개글을 절대 쓰지 마.** (예: "안녕하세요", "오늘은..." 금지)
+    2. 바로 첫 번째 뉴스 제목부터 시작해.
+    3. **글 맨 마지막에 '출처'나 '자동화 문구'를 절대 넣지 마.** (내가 코드로 넣을 거야)
+    4. 총 **5개**의 뉴스를 작성해.
     
-    3. **중요:** "이 포스팅은 Gemini AI가..." 같은 자동화 문구는 맨 위가 아니라, 글의 **맨 마지막**에 한 번만 넣어줘.
-    4. 전체적으로 깔끔한 마크다운 문법을 사용해.
+    [각 뉴스 작성 포맷]
+    ### [뉴스 제목]
+    
+    **📌 요약**
+    (뉴스 핵심 내용 3문장 내외)
+    
+    **💡 시사점**
+    - (시사점 1)
+    - (시사점 2)
+    
+    <br>
+    **[🔗 원문 기사 보기]({{뉴스링크}})**
+    
+    ---
     """
     
     target_model = "gemini-2.5-flash"
@@ -83,9 +83,13 @@ def save_as_markdown(content):
     date_str = now.strftime("%Y-%m-%d")
     file_name = f"{date_str}-daily-it-news.md"
     
-    # 맨 마지막에 자동화 문구 추가 (카드 미리보기 중복 방지용)
-    footer_text = "\n\n<br>\n\n> *이 포스팅은 Gemini AI가 선별하고 요약했습니다.*"
-    full_content = content + footer_text
+    # [수정됨] 사용자가 원한 문구로 통합 & 디자인(인용구) 적용
+    footer_text = "\n\n<br>\n\n> *이 포스팅은 Gemini AI가 제공한 뉴스 데이터를 기반으로 작성되었습니다.*"
+    
+    # AI가 혹시라도 서론을 썼을 경우를 대비해 앞뒤 공백 제거
+    clean_content = content.strip()
+    
+    full_content = clean_content + footer_text
     
     front_matter = f"""---
 layout: default
