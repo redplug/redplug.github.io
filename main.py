@@ -19,17 +19,6 @@ def get_tech_news():
 def generate_content(news_data):
     genai.configure(api_key=GEMINI_API_KEY)
     
-    # 모델 설정: Flash 모델 사용 시도
-    model_name = "gemini-1.5-flash-latest"
-    
-    try:
-        model = genai.GenerativeModel(model_name)
-        print(f"🤖 모델 사용: {model_name}")
-    except Exception:
-        # 만약 모델을 못 찾으면 가장 기본 모델인 gemini-pro로 폴백
-        print(f"⚠️ {model_name} 모델을 찾을 수 없어 'gemini-pro'로 전환합니다.")
-        model = genai.GenerativeModel("gemini-pro")
-
     prompt = f"""
     너는 IT 테크 블로거야. 아래 뉴스 중 Top 3를 선정해줘.
     
@@ -44,18 +33,33 @@ def generate_content(news_data):
     5. 전체적으로 깔끔한 마크다운 문법을 사용해.
     """
     
-    response = model.generate_content(prompt)
-    return response.text
+    # 1차 시도: Gemini 1.5 Flash (빠르고 저렴함)
+    try:
+        print("🤖 1차 시도: gemini-1.5-flash 모델 사용")
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        return response.text
+        
+    except Exception as e:
+        print(f"⚠️ 1차 시도 실패 ({e})")
+        print("🔄 2차 시도: gemini-pro 모델로 전환합니다.")
+        
+        # 2차 시도: Gemini Pro (가장 안정적임)
+        try:
+            model = genai.GenerativeModel("gemini-pro")
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e2:
+            print(f"❌ 2차 시도도 실패했습니다: {e2}")
+            return "AI 모델 호출에 실패하여 내용을 생성하지 못했습니다."
 
 def save_as_markdown(content):
     korea_tz = pytz.timezone("Asia/Seoul")
     now = datetime.now(korea_tz)
     
     date_str = now.strftime("%Y-%m-%d")
-    # 파일명에 공백 대신 하이픈 사용
     file_name = f"{date_str}-daily-it-news.md"
     
-    # Jekyll Front Matter
     front_matter = f"""---
 layout: post
 title:  "[{now.strftime('%Y-%m-%d')}] 오늘의 주요 IT 뉴스 Top 3"
@@ -82,5 +86,9 @@ if __name__ == "__main__":
     print("2. AI 원고 작성 중...")
     content = generate_content(news)
     
-    print("3. 파일 저장 중...")
-    save_as_markdown(content)
+    if "AI 모델 호출에 실패" not in content:
+        print("3. 파일 저장 중...")
+        save_as_markdown(content)
+    else:
+        print("❌ 콘텐츠 생성 실패로 저장을 건너뜁니다.")
+        exit(1) # Action을 실패로 처리
