@@ -1,12 +1,10 @@
-title: REDPLUG Tech News
+title: Redplug Tech News
 description: "매일 AI가 엄선한 최신 IT 트렌드와 뉴스"
-# theme: minima  <-- 이 줄을 지우거나 주석 처리해야 우리가 만든 디자인이 나옵니다.
+# theme: minima  <-- 이 줄은 반드시 없어야 합니다!
 
+# GitHub Pages 기본 플러그인 사용
 plugins:
   - jekyll-feed
 
-# 미래 날짜 글도 표시 (시차 때문에 글이 안 보이는 문제 방지)
+# 미래 날짜 글도 표시 (서버 시간차 문제 방지)
 future: true
-
-# 마크다운 설정
-markdown: kramdown
