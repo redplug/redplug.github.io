@@ -1,6 +1,6 @@
 title: Redplug Tech News
 description: "매일 AI가 엄선한 최신 IT 트렌드와 뉴스"
-# theme: minima  <-- 이 줄은 반드시 없어야 합니다!
+theme: minima  <-- 이 줄은 반드시 없어야 합니다!
 
 # GitHub Pages 기본 플러그인 사용
 plugins:
