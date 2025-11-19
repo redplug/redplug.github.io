@@ -8,11 +8,8 @@ import pytz
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def get_tech_news():
-    # GeekNews RSS (개발/테크 전용) - 품질이 좋음
+    # GeekNews RSS 사용
     rss_url = "http://feeds.feedburner.com/geeknews-feed"
-    
-    # 만약 구글 뉴스를 선호하시면 아래 주석을 풀고 위 주소를 주석 처리하세요
-    # rss_url = "https://news.google.com/rss/search?q=IT+기술+when:1d&hl=ko&gl=KR&ceid=KR:ko"
     
     feed = feedparser.parse(rss_url)
     news_list = []
@@ -20,7 +17,7 @@ def get_tech_news():
     if not feed.entries:
         return "뉴스 수집 실패"
 
-    # 5개를 뽑아야 하므로 여유 있게 상위 15개를 가져와서 AI에게 던져줍니다.
+    # 상위 15개 수집 후 AI에게 전달
     for entry in feed.entries[:15]:
         title = entry.title
         link = entry.link
@@ -33,28 +30,33 @@ def generate_content(news_data):
     genai.configure(api_key=GEMINI_API_KEY)
     
     prompt = f"""
-    너는 IT 테크 블로거야. 아래 뉴스 데이터 중에서 가장 중요하고 흥미로운 **Top 5** 이슈를 선정해줘.
+    너는 IT 테크 블로거야. 아래 뉴스 데이터 중 Top 5를 선정해줘.
     
     [뉴스 데이터]
     {news_data}
     
     [작성 포맷 - Markdown]
-    1. 맨 윗줄에 인용구로 "> *이 포스팅은 Gemini AI가 선별하고 요약했습니다.*" 를 적어줘.
-    2. 총 **5개**의 뉴스를 작성해야 해.
-    3. **각 뉴스마다** 아래 형식을 엄격하게 지켜줘:
+    1. 총 **5개**의 뉴스를 작성해.
+    2. **각 뉴스마다** 아래 구조를 반드시 지켜줘 (헤더와 줄바꿈 필수):
        
        ### [뉴스 제목]
-       (여기에 뉴스 내용을 3~4문장으로 요약. 전문적인 어조로, 해요체 사용.)
        
-       **[🔗 원문 기사 보기](뉴스링크)**
+       **📌 요약**
+       (여기에는 뉴스 내용을 3문장 내외로 핵심만 요약해서 작성)
        
-       (각 뉴스 사이에는 구분선 `---` 을 넣지 말고, 그냥 줄바꿈만 해줘.)
+       **💡 시사점**
+       - (첫 번째 시사점: 기술적/산업적 파급효과)
+       - (두 번째 시사점: 개발자나 업계에 미치는 영향)
+       
+       <br>
+       **[🔗 원문 기사 보기]({{뉴스링크}})**
+       
+       ---
     
-    4. **주의:** 맨 아래에 별도의 '출처' 섹션을 만들지 마. 출처 링크는 반드시 각 뉴스 요약 바로 밑에 위치해야 해.
-    5. 전체적으로 깔끔한 마크다운 문법을 사용해.
+    3. **중요:** "이 포스팅은 Gemini AI가..." 같은 자동화 문구는 맨 위가 아니라, 글의 **맨 마지막**에 한 번만 넣어줘.
+    4. 전체적으로 깔끔한 마크다운 문법을 사용해.
     """
     
-    # 모델 설정 (Gemini 2.5 Flash -> 실패시 Flash Latest)
     target_model = "gemini-2.5-flash"
     
     try:
@@ -66,7 +68,6 @@ def generate_content(news_data):
     except Exception as e:
         print(f"⚠️ 1차 시도 실패: {e}")
         fallback_model = "gemini-flash-latest"
-        print(f"🔄 2차 시도: {fallback_model}로 전환합니다.")
         try:
             model = genai.GenerativeModel(fallback_model)
             response = model.generate_content(prompt)
@@ -81,6 +82,10 @@ def save_as_markdown(content):
     
     date_str = now.strftime("%Y-%m-%d")
     file_name = f"{date_str}-daily-it-news.md"
+    
+    # 맨 마지막에 자동화 문구 추가 (카드 미리보기 중복 방지용)
+    footer_text = "\n\n<br>\n\n> *이 포스팅은 Gemini AI가 선별하고 요약했습니다.*"
+    full_content = content + footer_text
     
     front_matter = f"""---
 layout: default
@@ -97,7 +102,7 @@ categories: news
     file_path = os.path.join("_posts", file_name)
     
     with open(file_path, "w", encoding="utf-8") as f:
-        f.write(front_matter + content)
+        f.write(front_matter + full_content)
         
     print(f"✅ 파일 생성 완료: {file_path}")
 
