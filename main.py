@@ -8,12 +8,24 @@ import pytz
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def get_tech_news():
-    # 구글 뉴스 RSS (IT/기술)
-    rss_url = "https://news.google.com/rss/topic/CAAqJggKIiBQQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=ko&gl=KR&ceid=KR:ko"
+    # GeekNews RSS (개발/테크 전용)
+    rss_url = "http://feeds.feedburner.com/geeknews-feed"
+    
     feed = feedparser.parse(rss_url)
     news_list = []
+    
+    if not feed.entries:
+        print("⚠️ 뉴스 피드를 가져오지 못했습니다.")
+        return "뉴스 수집 실패"
+
     for entry in feed.entries[:10]:
-        news_list.append(f"- 제목: {entry.title}\n- 링크: {entry.link}\n")
+        # GeekNews는 요약문(description)도 품질이 좋아서 같이 넘겨주면 Gemini가 더 잘 씁니다.
+        title = entry.title
+        link = entry.link
+        summary = getattr(entry, 'description', '') # 요약이 있으면 가져옴
+        
+        news_list.append(f"- 제목: {title}\n- 링크: {link}\n- 내용: {summary}\n")
+        
     return "\n".join(news_list)
 
 def generate_content(news_data):
