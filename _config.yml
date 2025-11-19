@@ -8,3 +8,9 @@ plugins:
 
 # 미래 날짜 글도 표시 (서버 시간차 문제 방지)
 future: true
+
+date_format: "%Y-%m-%d"
+header_pages:
+  - index.md
+  
+markdown: kramdown
