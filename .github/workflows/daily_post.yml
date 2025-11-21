@@ -25,7 +25,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install feedparser google-generativeai pytz
+        pip install requests feedparser google-generativeai pytz
 
     - name: Run Script to Generate Post
       env:
