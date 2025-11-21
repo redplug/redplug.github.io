@@ -11,7 +11,7 @@ title: Home
 <div class="post-grid">
   {% for post in site.posts %}
     <div class="post-card">
-      <span class="post-date">{{ post.date | date: "%Y.%m.%d" }}</span>
+
       <h3 class="post-title">
         <a href="{{ post.url }}">{{ post.title }}</a>
       </h3>

@@ -159,11 +159,11 @@ def save_as_markdown(content, category):
     # 카테고리별 설정
     if category == "tech":
         file_name = f"{date_str}-daily-it-news.md"
-        post_title = f"[{now.strftime('%Y-%m-%d')}] 오늘의 글로벌 IT 뉴스 Top 5"
+        post_title = f"[{now.strftime('%Y-%m-%d')}] 글로벌 IT 뉴스 Top 5"
         category_yaml = "tech"
     else:
         file_name = f"{date_str}-daily-entertainment-news.md"
-        post_title = f"[{now.strftime('%Y-%m-%d')}] 오늘의 연예/문화 뉴스 Top 5"
+        post_title = f"[{now.strftime('%Y-%m-%d')}] 연예/문화 뉴스 Top 5"
         category_yaml = "entertainment"
     
     footer_text = "\n\n<br>\n\n> *이 포스팅은 Gemini AI가 제공한 뉴스 데이터를 기반으로 작성되었습니다.*"
