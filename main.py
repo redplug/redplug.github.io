@@ -113,7 +113,21 @@ def generate_content(news_data, category):
             return "FAIL"
 
 # --- 3. Slack 알림 전송 ---
-def send_slack_notification(title, blog_url):
+def send_slack_notification(title, blog_url, check_weekdays=True):
+    """
+    check_weekdays (bool): True일 경우 한국 시간 기준 주말에는 발송하지 않음 (기본값 True)
+    """
+    
+    # 1. 한국 시간(KST) 설정
+    kst = pytz.timezone('Asia/Seoul')
+    now_kst = datetime.now(kst)
+
+    # 2. 평일 체크 로직 (check_weekdays가 True일 때만 수행)
+    # weekday(): 0(월) ~ 4(금), 5(토), 6(일)
+    if check_weekdays and now_kst.weekday() >= 5:
+        print(f"📅 오늘({now_kst.strftime('%Y-%m-%d')})은 주말이므로 알림을 건너뜁니다.")
+        return
+
     if not SLACK_WEBHOOK_URL:
         print("⚠️ Slack URL이 설정되지 않아 알림을 건너뜁니다.")
         return
@@ -133,7 +147,8 @@ def send_slack_notification(title, blog_url):
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"📅 발행일: {datetime.now().strftime('%Y-%m-%d')}"
+                        # 한국 시간 기준으로 날짜 표시
+                        "text": f"📅 발행일: {now_kst.strftime('%Y-%m-%d')}"
                     }
                 ]
             }
@@ -191,7 +206,7 @@ categories: {category_yaml}
     
     # 파일 생성이 성공하면 Slack 알림 발송
     blog_url = "https://redplug.github.io" 
-    send_slack_notification(post_title, blog_url)
+    send_slack_notification(post_title, blog_url, True)
 
 if __name__ == "__main__":
     categories_to_process = ["tech", "entertainment"]
