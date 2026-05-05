@@ -30,6 +30,8 @@ jobs:
     - name: Run Script to Generate Post
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       run: python main.py
 
