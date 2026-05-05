@@ -8,6 +8,8 @@ import time
 
 # --- 설정값 ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "deepseek/deepseek-chat-v3-0324:free")
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL")
 
 # --- 뉴스 소스 정의 ---
@@ -60,56 +62,81 @@ def get_news(category):
 
 # --- 2. AI 원고 작성 ---
 def generate_content(news_data, category):
-    genai.configure(api_key=GEMINI_API_KEY)
-    
     category_korean = "IT 기술" if category == "tech" else "연예/문화"
-    
+
     prompt = f"""
     너는 글로벌 {category_korean} 트렌드를 전하는 전문 에디터야.
     아래 뉴스 리스트에서 가장 중요하고 파급력 있는 **Top 5 이슈**를 선정해줘.
-    
+
     [뉴스 데이터]
     {news_data}
-    
+
     [작성 규칙]
     1. **서론, 인사말, 소개글 금지.** 바로 첫 번째 뉴스부터 시작해.
     2. **언어:** 내용은 반드시 **'자연스러운 한국어'**로 작성해. (영어 기사는 번역 필수)
     3. **글 맨 마지막에 자동화 문구를 넣지 마.**
-    
+
     [각 뉴스 작성 포맷]
     ### [한국어 뉴스 제목]
-    
+
     **📌 요약**
     (핵심 내용 3문장 내외)
-    
+
     **💡 시사점**
     - (시사점 1)
     - (시사점 2)
-    
+
     <br>
     **[🔗 원문 기사 보기]({{뉴스링크}})**
-    
+
     ---
     """
-    
-    target_model = "gemini-2.5-flash"
-    
-    try:
-        print(f"🤖 [{category}] 모델 사용 시도: {target_model}")
-        model = genai.GenerativeModel(target_model)
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        print(f"⚠️ 1차 시도 실패: {e}")
-        fallback_model = "gemini-flash-latest"
+
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        target_model = "gemini-2.5-flash"
         try:
-            print(f"🔄 2차 시도: {fallback_model}")
-            model = genai.GenerativeModel(fallback_model)
+            print(f"🤖 [{category}] Gemini 모델 사용 시도: {target_model}")
+            model = genai.GenerativeModel(target_model)
             response = model.generate_content(prompt)
             return response.text
-        except Exception as e2:
-            print(f"❌ 2차 시도 실패: {e2}")
-            return "FAIL"
+        except Exception as e:
+            print(f"⚠️ Gemini 1차 시도 실패: {e}")
+            fallback_model = "gemini-flash-latest"
+            try:
+                print(f"🔄 Gemini 2차 시도: {fallback_model}")
+                model = genai.GenerativeModel(fallback_model)
+                response = model.generate_content(prompt)
+                return response.text
+            except Exception as e2:
+                print(f"⚠️ Gemini 2차 시도 실패: {e2}")
+
+    if OPENROUTER_API_KEY:
+        try:
+            print(f"🤖 [{category}] OpenRouter 모델 사용 시도: {OPENROUTER_MODEL}")
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": OPENROUTER_MODEL,
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.5
+                },
+                timeout=60,
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            print(f"❌ OpenRouter 시도 실패: {e}")
+
+    print("❌ 사용할 AI 키가 없거나 호출에 모두 실패했습니다. (GEMINI_API_KEY / OPENROUTER_API_KEY 확인)")
+    return "FAIL"
 
 # --- 3. Slack 알림 전송 ---
 def send_slack_notification(title, blog_url, check_weekdays=True):
