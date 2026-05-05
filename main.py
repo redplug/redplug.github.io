@@ -1,5 +1,4 @@
 import os
-import json
 import requests
 import feedparser
 import google.generativeai as genai
